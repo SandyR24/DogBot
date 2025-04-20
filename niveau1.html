@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Dogbot - Niveau 1</title>
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    /* Styles propres à ce jeu */
+    body {
+      font-family: 'Comic Sans MS', cursive, sans-serif;
+      text-align: center;
+      background-color: #f5f5ff;
+      padding: 20px;
+    }
+    header {
+      margin-bottom: 20px;
+    }
+    h1 {
+      color: #6a5acd;
+    }
+    .back-link {
+      display: inline-block;
+      margin-top: 10px;
+      text-decoration: none;
+      color: #6a5acd;
+      font-weight: bold;
+    }
+    .back-link:hover {
+      text-decoration: underline;
+    }
+    #game-container {
+      display: inline-block;
+      margin: 20px auto;
+    }
+    #grid {
+      display: grid;
+      grid-template-columns: repeat(5, 80px);
+      grid-template-rows: repeat(5, 80px);
+      gap: 2px;
+      background-color: #fff;
+      padding: 10px;
+      border-radius: 10px;
+      border: 2px solid #6a5acd;
+    }
+    .cell {
+      width: 80px;
+      height: 80px;
+      background-color: #fff;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      border-radius: 5px;
+      position: relative;
+      overflow: hidden;
+      border: 1px solid #d8bfd8;
+    }
+    .cell img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      position: absolute;
+    }
+    #controls {
+      margin-top: 20px;
+    }
+    .direction-row {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 5px;
+    }
+    .action-buttons {
+      margin-top: 10px;
+    }
+    button {
+      padding: 10px 20px;
+      margin: 5px;
+      font-size: 16px;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    #go-btn {
+      background-color: #4CAF50;
+    }
+    #go-btn:hover {
+      background-color: #45a049;
+    }
+    #reset-btn {
+      background-color: #FF8C00;
+    }
+    #reset-btn:hover {
+      background-color: #E67E00;
+    }
+    .direction-btn {
+      font-size: 20px;
+      padding: 15px;
+      background-color: #6a5acd;
+    }
+    #instructions {
+      font-size: 18px;
+      color: #6a5acd;
+      margin-bottom: 10px;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Dogbot - Niveau 1</h1>
+    <p id="instructions">Déplace Dogbot librement dans le quadrillage</p>
+    <a class="back-link" href="index.html">← Retour à la sélection des niveaux</a>
+  </header>
+
+  <div id="game-container">
+    <div id="grid"></div>
+    <div id="controls">
+      <div class="direction-row">
+        <button class="direction-btn" id="up">↑</button>
+      </div>
+      <div class="direction-row">
+        <button class="direction-btn" id="left">←</button>
+        <button class="direction-btn" id="down">↓</button>
+        <button class="direction-btn" id="right">→</button>
+      </div>
+      <div class="action-buttons">
+        <button id="reset-btn">Recommencer</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const dogbotImg = new Image();
+    dogbotImg.src = 'https://i.postimg.cc/nLYcKq7z/dogbot.jpg';
+    dogbotImg.id = 'dogbot-img';
+    dogbotImg.alt = 'Dogbot';
+    dogbotImg.draggable = true;
+
+    document.addEventListener('DOMContentLoaded', function () {
+      const grid = document.getElementById('grid');
+      const upBtn = document.getElementById('up');
+      const downBtn = document.getElementById('down');
+      const leftBtn = document.getElementById('left');
+      const rightBtn = document.getElementById('right');
+      const resetBtn = document.getElementById('reset-btn');
+
+      let dogbotPosition = { x: 2, y: 2 };
+
+      function createGrid() {
+        grid.innerHTML = '';
+        for (let y = 0; y < 5; y++) {
+          for (let x = 0; x < 5; x++) {
+            const cell = document.createElement('div');
+            cell.className = 'cell';
+            cell.dataset.x = x;
+            cell.dataset.y = y;
+
+            if (x === dogbotPosition.x && y === dogbotPosition.y) {
+              const dogbotClone = dogbotImg.cloneNode();
+              dogbotClone.draggable = true;
+              cell.appendChild(dogbotClone);
+
+              dogbotClone.addEventListener('dragstart', function (e) {
+                e.dataTransfer.setData('text/plain', 'dogbot');
+                setTimeout(() => { this.style.display = 'none'; }, 0);
+              });
+            }
+
+            cell.addEventListener('dragover', e => e.preventDefault());
+
+            cell.addEventListener('drop', function (e) {
+              e.preventDefault();
+              const data = e.dataTransfer.getData('text/plain');
+              if (data === 'dogbot') {
+                const oldDogbot = document.querySelector('#dogbot-img[draggable="true"]');
+                if (oldDogbot) oldDogbot.remove();
+
+                dogbotPosition.x = parseInt(this.dataset.x);
+                dogbotPosition.y = parseInt(this.dataset.y);
+
+                const newDogbot = dogbotImg.cloneNode();
+                newDogbot.draggable = true;
+                this.appendChild(newDogbot);
+
+                newDogbot.addEventListener('dragstart', function (e) {
+                  e.dataTransfer.setData('text/plain', 'dogbot');
+                  setTimeout(() => { this.style.display = 'none'; }, 0);
+                });
+              }
+            });
+
+            grid.appendChild(cell);
+          }
+        }
+      }
+
+      function moveDogbot(direction) {
+        let { x, y } = dogbotPosition;
+        switch (direction) {
+          case 'up': y = Math.max(0, y - 1); break;
+          case 'down': y = Math.min(4, y + 1); break;
+          case 'left': x = Math.max(0, x - 1); break;
+          case 'right': x = Math.min(4, x + 1); break;
+        }
+        if (x !== dogbotPosition.x || y !== dogbotPosition.y) {
+          dogbotPosition = { x, y };
+          createGrid();
+        }
+      }
+
+      function resetGame() {
+        dogbotPosition = { x: 2, y: 2 };
+        createGrid();
+      }
+
+      upBtn.addEventListener('click', () => moveDogbot('up'));
+      downBtn.addEventListener('click', () => moveDogbot('down'));
+      leftBtn.addEventListener('click', () => moveDogbot('left'));
+      rightBtn.addEventListener('click', () => moveDogbot('right'));
+      resetBtn.addEventListener('click', resetGame);
+
+      createGrid();
+    });
+  </script>
+</body>
+</html>
