@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dogbot Adventure - Niveau 2</title>
+    <style>
+        body {
+            font-family: 'Comic Sans MS', cursive, sans-serif;
+            text-align: center;
+            background-color: #e6e6fa;
+            padding: 20px;
+        }
+        h1 {
+            color: #6a5acd;
+        }
+        #game-container {
+            display: inline-block;
+            margin: 20px;
+        }
+        #grid {
+            display: grid;
+            grid-template-columns: repeat(5, 80px);
+            grid-template-rows: repeat(5, 80px);
+            gap: 2px;
+            margin: 20px auto;
+            background-color: #ffffff;
+            padding: 10px;
+            border-radius: 10px;
+            border: 2px solid #6a5acd;
+        }
+        .cell {
+            width: 80px;
+            height: 80px;
+            background-color: #ffffff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border-radius: 5px;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+            border: 1px solid #d8bfd8;
+        }
+        .cell img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            position: absolute;
+            transition: transform 0.3s;
+        }
+        #dogbot-img {
+            z-index: 2;
+        }
+        #backpack-img {
+            z-index: 1;
+            width: 70%;
+            height: 70%;
+        }
+        #controls {
+            margin: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .direction-row {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 5px;
+        }
+        .action-buttons {
+            display: flex;
+            justify-content: center;
+            margin-top: 10px;
+            gap: 10px;
+        }
+        button {
+            padding: 10px 20px;
+            margin: 2px;
+            font-size: 16px;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        #go-btn {
+            background-color: #4CAF50; /* Vert */
+        }
+        #go-btn:hover {
+            background-color: #45a049;
+        }
+        #reset-btn {
+            background-color: #FF8C00; /* Jaune-orange comme le sacado */
+        }
+        #reset-btn:hover {
+            background-color: #E67E00;
+        }
+        .direction-btn {
+            font-size: 20px;
+            padding: 15px;
+            background-color: #6a5acd;
+        }
+        #command-list {
+            min-height: 50px;
+            border: 2px dashed #9370db;
+            padding: 10px;
+            margin: 20px auto;
+            width: 300px;
+            border-radius: 5px;
+            background-color: white;
+        }
+        #feedback {
+            font-size: 18px;
+            color: #6a5acd;
+            min-height: 30px;
+            margin: 10px;
+            font-weight: bold;
+        }
+        .command {
+            display: inline-block;
+            padding: 8px;
+            margin: 3px;
+            background-color: #e6e6fa;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        /* Nouveaux styles pour la progression */
+        #progress-container {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin: 20px auto;
+        }
+        .progress-dot {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            border: 2px solid #6a5acd;
+        }
+        .empty-dot {
+            background-color: white;
+        }
+        .success-dot {
+            background-color: #4CAF50;
+        }
+        .fail-dot {
+            background-color: #f44336;
+        }
+        #progress-text {
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #6a5acd;
+        }
+    </style>
+</head>
+<body>
+    <h1>Dogbot Adventure - Niveau 2</h1>
+    <p>Aide Dogbot à retrouver son sac à dos !</p>
+    <a class="back-link" href="dogbot-niveaux.html">← Retour à la sélection des niveaux</a>
+    <div id="progress-container"></div>
+    <div id="progress-text">Progression: 0/10</div>
+    
+    <div id="game-container">
+        <div id="grid">
+            <!-- Les cellules seront générées par JavaScript -->
+        </div>
+        
+        <div id="controls">
+            <div class="direction-row">
+                <button class="direction-btn" id="up">↑</button>
+            </div>
+            <div class="direction-row">
+                <button class="direction-btn" id="left">←</button>
+                <button class="direction-btn" id="down">↓</button>
+                <button class="direction-btn" id="right">→</button>
+            </div>
+            <div class="action-buttons">
+                <button id="go-btn">GO</button>
+                <button id="reset-btn">Recommencer</button>
+            </div>
+        </div>
+        
+        <div id="command-list">
+            <p>Pour faire avancer Dogbot, clique sur les flèches puis sur GO.</p>
+        </div>
+        
+        <div id="feedback"></div>
+    </div>
+
+    <script>
+        // Préchargement des images
+        const dogbotNormalImg = new Image();
+        dogbotNormalImg.src = 'https://i.postimg.cc/05L0WHNr/Dog-Bot-2-A.png';
+        dogbotNormalImg.id = 'dogbot-img';
+        dogbotNormalImg.alt = 'Dogbot';
+        dogbotNormalImg.draggable = true;
+        
+        const dogbotHappyImg = new Image();
+        dogbotHappyImg.src = 'https://i.postimg.cc/ncySmhmR/Dog-Bot-2-B.png';
+        dogbotHappyImg.alt = 'Dogbot heureux';
+        dogbotHappyImg.draggable = true;
+        
+        const backpackImg = new Image();
+        backpackImg.src = 'https://i.postimg.cc/xTYzhrLx/logo.png';
+        backpackImg.id = 'backpack-img';
+        backpackImg.alt = 'Sac à dos';
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const grid = document.getElementById('grid');
+            const commandList = document.getElementById('command-list');
+            const feedback = document.getElementById('feedback');
+            const upBtn = document.getElementById('up');
+            const downBtn = document.getElementById('down');
+            const leftBtn = document.getElementById('left');
+            const rightBtn = document.getElementById('right');
+            const goBtn = document.getElementById('go-btn');
+            const resetBtn = document.getElementById('reset-btn');
+            const progressContainer = document.getElementById('progress-container');
+            const progressText = document.getElementById('progress-text');
+            
+            let commands = [];
+            let dogbotPosition = { x: 2, y: 2 };
+            let backpackPosition = { x: Math.floor(Math.random() * 5), y: Math.floor(Math.random() * 5) };
+            let hasWon = false;
+            let results = [];
+            let currentLevel = 0;
+            const TOTAL_LEVELS = 10;
+            
+            // Initialiser la progression
+            function initProgress() {
+                progressContainer.innerHTML = '';
+                for (let i = 0; i < TOTAL_LEVELS; i++) {
+                    const dot = document.createElement('div');
+                    dot.className = 'progress-dot empty-dot';
+                    progressContainer.appendChild(dot);
+                }
+                updateProgressText();
+            }
+            
+            function updateProgressText() {
+                const successCount = results.filter(r => r).length;
+                progressText.textContent = `Progression: ${successCount}/${TOTAL_LEVELS}`;
+            }
+            
+            function updateProgressDots() {
+                const dots = progressContainer.children;
+                for (let i = 0; i < dots.length; i++) {
+                    dots[i].className = i >= results.length ? 'progress-dot empty-dot' : 
+                        results[i] ? 'progress-dot success-dot' : 'progress-dot fail-dot';
+                }
+            }
+            
+            // Créer la grille
+            function createGrid() {
+                grid.innerHTML = '';
+                hasWon = false;
+                
+                for (let y = 0; y < 5; y++) {
+                    for (let x = 0; x < 5; x++) {
+                        const cell = document.createElement('div');
+                        cell.className = 'cell';
+                        cell.dataset.x = x;
+                        cell.dataset.y = y;
+                        
+                        // Ajouter le sac à dos
+                        if (x === backpackPosition.x && y === backpackPosition.y) {
+                            const backpackClone = backpackImg.cloneNode();
+                            cell.appendChild(backpackClone);
+                        }
+                        
+                        // Ajouter Dogbot
+                        if (x === dogbotPosition.x && y === dogbotPosition.y) {
+                            let dogbotClone;
+                            if (x === backpackPosition.x && y === backpackPosition.y) {
+                                dogbotClone = dogbotHappyImg.cloneNode();
+                                hasWon = true;
+                            } else {
+                                dogbotClone = dogbotNormalImg.cloneNode();
+                            }
+                            
+                            dogbotClone.draggable = true;
+                            dogbotClone.id = 'dogbot-img';
+                            cell.appendChild(dogbotClone);
+                            
+                            // Gestion du glisser-déposer
+                            dogbotClone.addEventListener('dragstart', function(e) {
+                                e.dataTransfer.setData('text/plain', 'dogbot');
+                                setTimeout(() => { this.style.display = 'none'; }, 0);
+                            });
+                        }
+                        
+                        cell.addEventListener('dragover', function(e) {
+                            e.preventDefault();
+                        });
+                        
+                        cell.addEventListener('drop', function(e) {
+                            e.preventDefault();
+                            const data = e.dataTransfer.getData('text/plain');
+                            if (data === 'dogbot') {
+                                // Supprimer Dogbot de l'ancienne position
+                                const oldDogbot = document.querySelector('#dogbot-img[draggable="true"]');
+                                if (oldDogbot) oldDogbot.remove();
+                                
+                                // Mettre à jour la position
+                                dogbotPosition.x = parseInt(this.dataset.x);
+                                dogbotPosition.y = parseInt(this.dataset.y);
+                                
+                                // Ajouter Dogbot à la nouvelle position
+                                let newDogbot;
+                                if (dogbotPosition.x === backpackPosition.x && dogbotPosition.y === backpackPosition.y) {
+                                    newDogbot = dogbotHappyImg.cloneNode();
+                                    hasWon = true;
+                                } else {
+                                    newDogbot = dogbotNormalImg.cloneNode();
+                                    hasWon = false;
+                                }
+                                
+                                newDogbot.draggable = true;
+                                newDogbot.id = 'dogbot-img';
+                                this.appendChild(newDogbot);
+                                
+                                // Re-attacher l'événement de drag
+                                newDogbot.addEventListener('dragstart', function(e) {
+                                    e.dataTransfer.setData('text/plain', 'dogbot');
+                                    setTimeout(() => { this.style.display = 'none'; }, 0);
+                                });
+                                
+                                checkWinCondition();
+                            }
+                        });
+                        
+                        grid.appendChild(cell);
+                    }
+                }
+            }
+            
+            // Ajouter une commande
+            function addCommand(direction) {
+                const directions = {
+                    'up': '↑',
+                    'down': '↓',
+                    'left': '←',
+                    'right': '→'
+                };
+                
+                const command = document.createElement('span');
+                command.className = 'command';
+                command.textContent = directions[direction];
+                command.draggable = true;
+                command.dataset.direction = direction;
+                
+                command.addEventListener('dragstart', function(e) {
+                    e.dataTransfer.setData('text/plain', direction);
+                });
+                
+                commandList.appendChild(command);
+                commands.push(direction);
+            }
+            
+            // Exécuter les commandes
+            function executeCommands() {
+                if (commands.length === 0) {
+                    showFeedback("Tu n'as pas encore programmé Dogbot !");
+                    return;
+                }
+                
+                let i = 0;
+                const interval = setInterval(() => {
+                    if (i >= commands.length || hasWon) {
+                        clearInterval(interval);
+                        
+                        if (hasWon) {
+                            endLevel();
+                        } else if (i >= commands.length) {
+                            checkWinCondition();
+                        }
+                        
+                        return;
+                    }
+                    
+                    const direction = commands[i];
+                    moveDogbot(direction);
+                    i++;
+                }, 800);
+            }
+            
+            function endLevel() {
+                if (currentLevel < TOTAL_LEVELS) {
+                    results.push(true);
+                    updateProgressDots();
+                    updateProgressText();
+                    currentLevel++;
+                    
+                    if (currentLevel < TOTAL_LEVELS) {
+                        setTimeout(() => {
+                            resetGame();
+                        }, 1500);
+                    } else {
+                        const successCount = results.filter(r => r).length;
+                        showFeedback(`Partie terminée ! Score: ${successCount}/${TOTAL_LEVELS}`);
+                    }
+                }
+            }
+            
+            // Déplacer Dogbot
+            function moveDogbot(direction) {
+                let newX = dogbotPosition.x;
+                let newY = dogbotPosition.y;
+                
+                switch (direction) {
+                    case 'up':
+                        newY = Math.max(0, dogbotPosition.y - 1);
+                        break;
+                    case 'down':
+                        newY = Math.min(4, dogbotPosition.y + 1);
+                        break;
+                    case 'left':
+                        newX = Math.max(0, dogbotPosition.x - 1);
+                        break;
+                    case 'right':
+                        newX = Math.min(4, dogbotPosition.x + 1);
+                        break;
+                }
+                
+                if (newX !== dogbotPosition.x || newY !== dogbotPosition.y) {
+                    dogbotPosition.x = newX;
+                    dogbotPosition.y = newY;
+                    createGrid();
+                    
+                    // Vérifier si Dogbot a atteint le sac à dos
+                    if (dogbotPosition.x === backpackPosition.x && dogbotPosition.y === backpackPosition.y) {
+                        hasWon = true;
+                        showFeedback("Bravo ! Dogbot a retrouvé son sac à dos !");
+                    }
+                }
+            }
+            
+            // Vérifier si Dogbot a atteint le sac à dos
+            function checkWinCondition() {
+                if (hasWon) {
+                    showFeedback("Bravo ! Dogbot a retrouvé son sac à dos !");
+                } else if (commands.length > 0) {
+                    results.push(false);
+                    updateProgressDots();
+                    updateProgressText();
+                    currentLevel++;
+                    
+                    if (currentLevel < TOTAL_LEVELS) {
+                        showFeedback("Presque ! Nouveau défi...");
+                        setTimeout(() => {
+                            resetGame();
+                        }, 1500);
+                    } else {
+                        const successCount = results.filter(r => r).length;
+                        showFeedback(`Partie terminée ! Score: ${successCount}/${TOTAL_LEVELS}`);
+                    }
+                }
+            }
+            
+            function showFeedback(message) {
+                feedback.textContent = message;
+            }
+            
+            function resetGame() {
+                commands = [];
+                commandList.innerHTML = '<p>Pour faire avancer Dogbot, clique sur les flèches puis sur GO.</p>';
+                dogbotPosition = { x: 2, y: 2 };
+                backpackPosition = { x: Math.floor(Math.random() * 5), y: Math.floor(Math.random() * 5) };
+                
+                while (backpackPosition.x === dogbotPosition.x && backpackPosition.y === dogbotPosition.y) {
+                    backpackPosition = { x: Math.floor(Math.random() * 5), y: Math.floor(Math.random() * 5) };
+                }
+                
+                createGrid();
+                showFeedback("");
+            }
+            
+            // Événements
+            upBtn.addEventListener('click', () => addCommand('up'));
+            downBtn.addEventListener('click', () => addCommand('down'));
+            leftBtn.addEventListener('click', () => addCommand('left'));
+            rightBtn.addEventListener('click', () => addCommand('right'));
+            
+            goBtn.addEventListener('click', executeCommands);
+            resetBtn.addEventListener('click', function() {
+                if (currentLevel < TOTAL_LEVELS) {
+                    resetGame();
+                }
+            });
+            
+            // Gestion du glisser-déposer pour les commandes
+            commandList.addEventListener('dragover', function(e) {
+                e.preventDefault();
+            });
+            
+            commandList.addEventListener('drop', function(e) {
+                e.preventDefault();
+                const direction = e.dataTransfer.getData('text/plain');
+                if (['up', 'down', 'left', 'right'].includes(direction)) {
+                    addCommand(direction);
+                }
+            });
+            
+            // Initialiser le jeu
+            initProgress();
+            resetGame();
+        });
+    </script>
+</body>
+</html>
